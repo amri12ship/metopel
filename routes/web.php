@@ -28,14 +28,20 @@ Route::get('/__diag', function () {
     ];
 
     if (defined('PASSWORD_BCRYPT') && function_exists('password_hash')) {
-        try {
-            $h = password_hash('test-password', PASSWORD_BCRYPT, ['cost' => 4]);
-            $out['hash_ok'] = $h;
-        } catch (Throwable $e) {
-            $out['hash_error'] = get_class($e).': '.$e->getMessage();
+        foreach ([4, 12, 31] as $c) {
+            try {
+                $h = password_hash('test-password', PASSWORD_BCRYPT, ['cost' => $c]);
+                $out["cost_$c"] = 'ok:'.strlen($h);
+            } catch (Throwable $e) {
+                $out["cost_$c"] = get_class($e).': '.$e->getMessage();
+            }
         }
-        $pre = @password_get_info('$2y$10$'.$str = '????????');
-        $out['info'] = $pre['algoName'] ?? 'no-info';
+        try {
+            $out['laravel_hash'] = strlen(\Illuminate\Support\Facades\Hash::make('test-password'));
+            $out['laravel_rounds_default'] = (new \Illuminate\Hashing\BcryptHasher(isset($rc) ? [] : []))->info('$2y$04$oO0MzpKPaUzaOHyg.gmSVumr0QKE6sAfxjACDxuoOWe6m8./Kk9TG');
+        } catch (Throwable $e) {
+            $out['laravel_hash'] = get_class($e).': '.$e->getMessage();
+        }
     }
 
     return response()->json($out);
