@@ -19,19 +19,18 @@ class DashboardController extends Controller
 
     public function index(): View
     {
-        $stats = Cache::remember('admin.dashboard.stats', 120, fn () => $this->stats());
+        $payload = Cache::remember('admin.dashboard.'.now()->toDateString(), 120, function () {
+            return [
+                'recentEmployees' => Employee::with('user')->latest()->take(5)->get(),
+                'activeLocationsList' => AttendanceLocation::where('is_active', true)
+                    ->latest()
+                    ->take(5)
+                    ->get(),
+                ...$this->stats(),
+            ];
+        });
 
-        $recentEmployees = Employee::with('user')->latest()->take(5)->get();
-        $activeLocationsList = AttendanceLocation::where('is_active', true)
-            ->latest()
-            ->take(5)
-            ->get();
-
-        return view('admin.dashboard', [
-            'recentEmployees' => $recentEmployees,
-            'activeLocationsList' => $activeLocationsList,
-            ...$stats,
-        ]);
+        return view('admin.dashboard', $payload);
     }
 
     private function stats(): array
