@@ -169,10 +169,11 @@ class AttendanceReportService
 
         $totalEmployees = Employee::where('status', Employee::STATUS_ACTIVE)->count();
 
-        $counts = AttendanceRecord::whereDate('date', $date)
-            ->get()
+        $counts = AttendanceRecord::query()
+            ->whereDate('date', $date)
+            ->selectRaw('status, count(*) as total')
             ->groupBy('status')
-            ->map->count();
+            ->pluck('total', 'status');
 
         $attended = $counts->sum();
         $present = $counts->get('Hadir', 0);
@@ -270,16 +271,25 @@ class AttendanceReportService
      */
     public function weeklyTrend(): array
     {
+        $from = now()->subDays(6)->toDateString();
+        $to = now()->toDateString();
+
+        $rows = AttendanceRecord::query()
+            ->whereDate('date', '>=', $from)
+            ->whereDate('date', '<=', $to)
+            ->selectRaw('date, status, count(*) as total')
+            ->groupBy('date', 'status')
+            ->get()
+            ->groupBy('date');
+
         $trend = [];
 
         for ($i = 6; $i >= 0; $i--) {
-            $date = now()->copy()->subDays($i)->toDateString();
             $carbon = now()->copy()->subDays($i);
-
-            $counts = AttendanceRecord::whereDate('date', $date)
-                ->get()
-                ->groupBy('status')
-                ->map->count();
+            $date = $carbon->toDateString();
+            $counts = collect($rows->get($date, []))->mapWithKeys(
+                fn ($row) => [$row->status => $row->total],
+            );
 
             $trend[] = [
                 'date' => $date,
