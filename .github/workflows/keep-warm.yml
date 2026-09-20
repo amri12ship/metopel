@@ -2,7 +2,7 @@ name: keep-warm
 
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '*/3 * * * *'
   workflow_dispatch:
 
 concurrency:
@@ -16,6 +16,34 @@ jobs:
     steps:
       - name: Ping production
         run: |
-          code=$(curl -m 60 -s -o /dev/null -w '%{http_code}' https://metopel.vercel.app/)
-          echo "HTTP $code"
-          [ "$code" -ge 500 ] && exit 1
+          failed=0
+          for url in \
+            'https://metopel.vercel.app/' \
+            'https://metopel-amri9.vercel.app/'; do
+
+            ok=""
+            code=""
+            ms=""
+            for attempt in 1 2; do
+              start=$(date +%s%3N)
+              code=$(curl -m 40 -sS -o /dev/null -w '%{http_code}' "$url" 2>/dev/null)
+              rc=$?
+              end=$(date +%s%3N)
+              ms=$((end - start))
+              if [ "$code" = "200" ]; then
+                ok="true"
+                break
+              fi
+              echo "retry attempt $attempt for $url (rc=$rc code=${code:-none})"
+              sleep 3
+            done
+
+            if [ "$ok" = "true" ]; then
+              echo "OK   $url  HTTP $code  ${ms}ms"
+            else
+              echo "FAIL $url  last HTTP ${code:-none}  rc=$rc"
+              failed=1
+            fi
+          done
+
+          [ "$failed" -ne 0 ] && exit 1
