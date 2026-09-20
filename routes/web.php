@@ -18,35 +18,6 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
-Route::get('/__diag', function () {
-    $out = [
-        'php' => PHP_VERSION,
-        'build' => json_encode(['zts' => defined('ZEND_THREAD_SAFE') ? ZEND_THREAD_SAFE : 'n/a', 'extensions' => get_loaded_extensions()]),
-        'password_hash_fn' => function_exists('password_hash'),
-        'PASSWORD_BCRYPT' => defined('PASSWORD_BCRYPT') ? PASSWORD_BCRYPT : 'UNDEFINED',
-        'sapi' => PHP_SAPI,
-    ];
-
-    if (defined('PASSWORD_BCRYPT') && function_exists('password_hash')) {
-        foreach ([4, 12] as $c) {
-            try {
-                $h = password_hash('test-password', PASSWORD_BCRYPT, ['cost' => $c]);
-                $out["cost_$c"] = 'ok:'.strlen($h);
-            } catch (Throwable $e) {
-                $out["cost_$c"] = get_class($e).': '.$e->getMessage();
-            }
-        }
-        try {
-            $out['hashing_config'] = json_encode(config('hashing'));
-            $out['laravel_hash'] = strlen(\Illuminate\Support\Facades\Hash::make('test-password'));
-        } catch (Throwable $e) {
-            $out['laravel_hash'] = get_class($e).': '.$e->getMessage();
-        }
-    }
-
-    return response()->json($out);
-});
-
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [LoginController::class, 'login'])->name('login.attempt');
