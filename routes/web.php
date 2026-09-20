@@ -15,6 +15,16 @@ use App\Http\Controllers\Employee\ProfileController as EmployeeProfileController
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
+    $user = request()->user();
+
+    if ($user && $user->isAdmin()) {
+        return redirect()->route('admin.dashboard');
+    }
+
+    if ($user && $user->isEmployee()) {
+        return redirect()->route('employee.dashboard');
+    }
+
     return redirect()->route('login');
 });
 
