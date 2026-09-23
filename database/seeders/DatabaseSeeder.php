@@ -17,23 +17,11 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->seedAdmin();
+        $this->call(AdminSeeder::class);
         $this->seedEmployees();
         $this->seedLocations();
         $this->seedWorkSchedules();
         $this->seedEmployeeSchedules();
-    }
-
-    private function seedAdmin(): void
-    {
-        User::firstOrCreate(
-            ['email' => 'admin@gmail.com'],
-            [
-                'name' => 'Admin Sistem',
-                'password' => self::DEMO_PASSWORD,
-                'role' => User::ROLE_ADMIN,
-            ],
-        );
     }
 
     private function seedEmployees(): void
